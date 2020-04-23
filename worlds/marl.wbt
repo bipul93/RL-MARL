@@ -1,0 +1,33 @@
+#VRML_SIM R2020a utf8
+WorldInfo {
+}
+Viewpoint {
+  orientation 0.16122082240170055 -0.9854694678361804 -0.05345815547504935 5.780144785235648
+  position 3.380953505679329 0.8536089518254336 3.985428056918956
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  floorSize 5 5
+  floorTileSize 0.25 0.25
+  floorAppearance ChequeredParquetry {
+    textureTransform TextureTransform {
+      scale 0.1 0
+    }
+  }
+  wallHeight 0.05
+}
+KukaBox {
+  translation 1.57 0.01 0
+}
+PlasticCrate {
+  translation 0.07 0 0.68
+  size 0.3 0.3 0.3
+  color 0.12549 0.290196 0.529412
+}
+Youbot {
+  translation 1.99 0.12 1.75
+  controller "<extern>"
+}

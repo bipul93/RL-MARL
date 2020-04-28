@@ -25,6 +25,6 @@ PlasticCrate {
 Youbot {
   translation 2 0.12 2
   rotation 2.801471114020508e-07 0.7071082811855252 0.7071052811843322 3.14159
-  controller "marl"
+  controller "<extern>"
   supervisor TRUE
 }

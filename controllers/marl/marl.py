@@ -1,4 +1,5 @@
 """marl controller."""
+import math
 
 print("Test")
 
@@ -30,10 +31,11 @@ from controller import Robot, Motor, DistanceSensor, Keyboard, Supervisor
 # robot = Robot()
 robot = Supervisor()
 print(robot)
-# print(robot.getField("translation"))
+# print(robot.getField("translation").getSFVec3f())
+# print(robot.getField("rotation"))
 robot_node = robot.getSelf()
 print(robot_node.getPosition())
-print(robot_node.getOrientation())
+print((robot_node.getField("rotation")).getSFRotation())
 r = R.from_rotvec(np.reshape(robot_node.getOrientation(), (3, 3)))
 print(r)
 print(r.as_euler('zxy'))
@@ -56,7 +58,7 @@ print(robot.getTime())
 # print(robot.getControllerArguments())
 
 wheels = []
-SPEED = 4.0
+SPEED = 14.0
 
 # Get these values from world, (when figured out how to)
 floor_size = 5  # 5 x 5 meters
@@ -94,8 +96,8 @@ def base_reset():
     global wheels
     speeds = [0.0, 0.0, 0.0, 0.0]
     base_set_wheel_speeds_helper(speeds)
-    trans_field.setSFVec3f([bot_init_pos[0], 0.12, bot_init_pos[1]])
-    robot_node.resetPhysics()
+    # trans_field.setSFVec3f([bot_init_pos[0], 0.12, bot_init_pos[1]])
+    # robot_node.resetPhysics()
     # robot_node.simulationReset()
 
 
@@ -113,13 +115,13 @@ def base_backwards():
 
 def base_turn_left():
     global wheels
-    speeds = [-SPEED, SPEED, -SPEED, SPEED]
+    speeds = [SPEED, -SPEED, SPEED, -SPEED]
     base_set_wheel_speeds_helper(speeds)
 
 
 def base_turn_right():
     global wheels
-    speeds = [SPEED, -SPEED, SPEED, -SPEED]
+    speeds = [-SPEED, SPEED, -SPEED, SPEED]
     base_set_wheel_speeds_helper(speeds)
 
 
@@ -133,6 +135,14 @@ def base_strafe_right():
     global wheels
     speeds = [-SPEED, SPEED, SPEED, -SPEED]
     base_set_wheel_speeds_helper(speeds)
+
+
+def get_base_rotation():
+    return (robot_node.getField("rotation")).getSFRotation()
+
+
+def get_base_position():
+    return (robot_node.getField("translation")).getSFVec3f()
 
 
 class Environment(gym.Env):
@@ -160,9 +170,9 @@ class Environment(gym.Env):
 
         self.agent_pos = np.clip(self.agent_pos, 0, self.size - 1)
 
-        x = -self.agent_pos[0] + 2.5 - 0.5
-        y = self.agent_pos[1] - 2.5 + 0.5
-        base_set_pos(x, y)
+        # x = -self.agent_pos[0] + 2.5 - 0.5
+        # y = self.agent_pos[1] - 2.5 + 0.5
+        # base_set_pos(x, y)
 
         # reward functions
         reward = 0
@@ -225,13 +235,36 @@ class Environment(gym.Env):
         # print(np.array(self.agent_pos) / 1)
         return np.array([self.agent_pos[0], self.agent_pos[1], self.bot_state]) / 1
 
-    def render(self, mode='human'):
+    def render(self, action):
         x = -self.agent_pos[0] + 2.5 - 0.5
         y = self.agent_pos[1] - 2.5 + 0.5
-        print("Agent pos: ", x, y)
-        base_set_pos(x, y)
-        passive_wait(5.0)
-        time.sleep(5)
+        bot_pos = get_base_position()
+        dist = math.sqrt(((x - bot_pos[0]) ** 2) + ((y - bot_pos[2]) ** 2))
+        print("Agent pos: ", x, y, action, bot_pos, dist)
+        if action == -1:
+            return
+        if action == 2:
+            print("action2")
+            # passive_wait(5)
+            # base_turn_left()
+            # # passive_wait(10)
+            # time.sleep(10)
+            # # if (abs(-2.09 - get_base_rotation()[3])) >= 0.01:
+            # #     print (abs(-2.09 - get_base_rotation()[3]))
+            # #     break;
+            # base_reset()
+            # base_forwards()
+            # passive_wait(5)
+            # if dist >= 0.1:
+            #     base_forwards()
+            #     passive_wait(5)
+            # base_reset()
+        # else:
+        # while True:
+        base_turn_left()
+        # base_set_pos(x, y)
+        # passive_wait(5.0)
+        # time.sleep(5)
         return
 
 
@@ -272,7 +305,9 @@ class Critic(nn.Module):
 
 class ACTOR_CRITIC_AGENT():
     def __init__(self):
-        self.actor = Actor()
+        # self.actor = Actor()
+        self.actor = torch.load("model.pth")
+        self.actor.eval()
         self.critic = Critic()
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=1e-2)
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=1e-2)
@@ -281,6 +316,7 @@ class ACTOR_CRITIC_AGENT():
         self.log_probs = []
         self.state_values = []
     # https://pytorch.org/docs/stable/distributions.html
+
     def select_action(self, state):
         state = torch.from_numpy(state).float().unsqueeze(0)
         # print(state)
@@ -373,24 +409,32 @@ class ACTOR_CRITIC_AGENT():
             avg_rewards = np.mean(total_rewards[-100:])
             # mean_rewards.append(avg_rewards)
             # if i_episode % 10 == 0:
-            print('Episode {}\tEpisode reward: {:.2f}\tMean-100 episodes: {:.2f}\tinfo_state: {}'.format(i_episode, r,
-                                                                                                         avg_rewards,
-                                                                                                         info_state))
+            print('Episode {}\tEpisode reward: {:.2f}\tMean-100 episodes: {:.2f}\tinfo_state: {}'.format(i_episode, r, avg_rewards,  info_state))
+
         return total_rewards
+
+    def save_model(self):
+        torch.save(self.actor, "model.pth")
+        return
 
     def evaluate(self):
         obs = env.reset()
         done = False
-        env.render()
+        env.render(-1)
         while not done:
             action, log_prob, state_val = self.select_action(obs)
             obs, reward, done, info = env.step(action.item())
             print(action.item())
-            env.render()
+
+            env.render(action.item())
+            passive_wait(5.0)
+            time.sleep(5)
 
 
 agent = ACTOR_CRITIC_AGENT()
-total_rewards = agent.train()
+# total_rewards = agent.train()
+# agent.save_model()
+
 
 
 def passive_wait(sec):
@@ -398,7 +442,7 @@ def passive_wait(sec):
     while True:
         step()
         if start_time + sec > robot.getTime():
-            break;
+            break
 
 
 def step():
@@ -406,41 +450,57 @@ def step():
     # - perform simulation steps until Webots is stopping the controller
     if robot.step(timestep) == -1:
         return
-    # while robot.step(timestep) != -1:
-    #     print(robot.step(timestep))
-        # Read the sensors:
-        # Enter here functions to read sensor data, like:
-        # val = ds.getValue()
-        # print(val)
-        # Process sensor data here.
 
-        # Enter here functions to send actuator commands, like:
-        # motor.setPosition(10.0)
-        # base_init()
-        # print("hey")
-
-        # base_forwards()
-
-        # base_set_pos(0, 0)
-        # base_reset()
-        # base_set_pos(-2.0, -2.0)
-
-        # base_forwards()
-        # time.sleep(5)
-        # base_reset()
-
-        # time.sleep(5)
-        # print("evaluating ... ")
-        # agent.evaluate()
-
-        # pass
-
-    # Enter here exit cleanup code.
 
 complete = True
+moveToNextState = True
+obs = env.reset()
+done = False
+# obs, reward, done, info
 while complete:
     step()
-    print("evaluating ... ")
-    agent.evaluate()
-    complete = False
+    # base_turn_left()
+    # print("evaluating ... ")
+    # agent.evaluate()
+    
+    if moveToNextState and not done:
+        moveToNextState = False
+        action, log_prob, state_val = agent.select_action(obs)
+        obs, reward, done, info = env.step(action.item())
+    # env.render(action.item())
+    x = -obs[0] + 2.5 - 0.5
+    y = obs[1] - 2.5 + 0.5
+    bot_pos = get_base_position()
+    dist = math.sqrt(((x - bot_pos[0]) ** 2) + ((y - bot_pos[2]) ** 2))
+    print("Agent pos: ", x, y, action, bot_pos, dist, done)
+    if action == 2:
+        angle_val = -2.09
+    if action == 1:
+        angle_val = 3.14
+
+    if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
+        base_turn_left()
+    else:
+        # base_reset()
+        base_forwards()
+    if dist <= 0.1:
+        base_reset()
+        moveToNextState = True
+    if done:
+        complete = False
+
+    # complete = False
+    # x = -0 + 2.5 - 0.5
+    # y = 3 - 2.5 + 0.5
+    # p2 = get_base_position()
+    # distance = math.sqrt( ((x-p2[0])**2)+((y-p2[2])**2) )
+    # print(abs(-2.09 - get_base_rotation()[3]), distance)
+    # if (abs(-2.09 - get_base_rotation()[3])) >= 0.01:
+    #     base_turn_left()
+    # else:
+    #     # base_reset()
+    #     base_forwards()
+    # if distance <= 0.1:
+    #     base_reset()
+    #     complete = False
 

@@ -25,7 +25,7 @@
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
-    <property name="last_opened_file_path" value="/usr/local/webots/lib/controller/python35" />
+    <property name="last_opened_file_path" value="$USER_HOME$/Coursework/RL/aws-robomaker-sample-application-deepracer/simulation_ws/src" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
   </component>
   <component name="RunManager">
@@ -64,7 +64,10 @@
       <updated>1587614390973</updated>
       <workItem from="1587614393319" duration="3264000" />
       <workItem from="1587683427939" duration="2024000" />
-      <workItem from="1588014056262" duration="8305000" />
+      <workItem from="1588014056262" duration="8906000" />
+      <workItem from="1588551780120" duration="68000" />
+      <workItem from="1588817992548" duration="2169000" />
+      <workItem from="1588824716769" duration="5327000" />
     </task>
     <servers />
   </component>
@@ -80,26 +83,26 @@
       <screen x="0" y="24" width="1920" height="1007" />
     </state>
     <state x="746" y="222" key="#com.intellij.ide.macro.MacrosDialog/0.24.1920.1007@0.24.1920.1007" timestamp="1587614904970" />
-    <state x="711" y="257" key="FileChooserDialogImpl" timestamp="1587615004808">
+    <state x="711" y="257" key="FileChooserDialogImpl" timestamp="1588551848007">
       <screen x="0" y="24" width="1920" height="1007" />
     </state>
-    <state x="711" y="257" key="FileChooserDialogImpl/0.24.1920.1007@0.24.1920.1007" timestamp="1587615004808" />
-    <state width="1874" height="320" key="GridCell.Tab.0.bottom" timestamp="1588053424370">
+    <state x="711" y="257" key="FileChooserDialogImpl/0.24.1920.1007@0.24.1920.1007" timestamp="1588551848007" />
+    <state width="1874" height="339" key="GridCell.Tab.0.bottom" timestamp="1588831251218">
       <screen x="0" y="24" width="1920" height="1007" />
     </state>
-    <state width="1874" height="320" key="GridCell.Tab.0.bottom/0.24.1920.1007@0.24.1920.1007" timestamp="1588053424370" />
-    <state width="1874" height="320" key="GridCell.Tab.0.center" timestamp="1588053424368">
+    <state width="1874" height="339" key="GridCell.Tab.0.bottom/0.24.1920.1007@0.24.1920.1007" timestamp="1588831251218" />
+    <state width="1874" height="339" key="GridCell.Tab.0.center" timestamp="1588831251218">
       <screen x="0" y="24" width="1920" height="1007" />
     </state>
-    <state width="1874" height="320" key="GridCell.Tab.0.center/0.24.1920.1007@0.24.1920.1007" timestamp="1588053424368" />
-    <state width="1874" height="320" key="GridCell.Tab.0.left" timestamp="1588053424367">
+    <state width="1874" height="339" key="GridCell.Tab.0.center/0.24.1920.1007@0.24.1920.1007" timestamp="1588831251218" />
+    <state width="1874" height="339" key="GridCell.Tab.0.left" timestamp="1588831251218">
       <screen x="0" y="24" width="1920" height="1007" />
     </state>
-    <state width="1874" height="320" key="GridCell.Tab.0.left/0.24.1920.1007@0.24.1920.1007" timestamp="1588053424367" />
-    <state width="1874" height="320" key="GridCell.Tab.0.right" timestamp="1588053424369">
+    <state width="1874" height="339" key="GridCell.Tab.0.left/0.24.1920.1007@0.24.1920.1007" timestamp="1588831251218" />
+    <state width="1874" height="339" key="GridCell.Tab.0.right" timestamp="1588831251218">
       <screen x="0" y="24" width="1920" height="1007" />
     </state>
-    <state width="1874" height="320" key="GridCell.Tab.0.right/0.24.1920.1007@0.24.1920.1007" timestamp="1588053424369" />
+    <state width="1874" height="339" key="GridCell.Tab.0.right/0.24.1920.1007@0.24.1920.1007" timestamp="1588831251218" />
     <state x="453" y="149" key="SettingsEditor" timestamp="1588042931656">
       <screen x="0" y="24" width="1920" height="1007" />
     </state>
@@ -110,6 +113,6 @@
     <state x="623" y="224" width="672" height="678" key="search.everywhere.popup/0.24.1920.1007@0.24.1920.1007" timestamp="1588051851094" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
-    <SUITE FILE_PATH="coverage/marl$marl.coverage" NAME="marl Coverage Results" MODIFIED="1588053424346" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
+    <SUITE FILE_PATH="coverage/marl$marl.coverage" NAME="marl Coverage Results" MODIFIED="1588831251207" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
 </project>

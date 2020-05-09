@@ -17,6 +17,10 @@ RectangleArena {
 KukaBox {
   translation 2.25 0.01 -2.25
 }
+KukaBox {
+  translation -2.25 0 2.25
+  name "Kuka box(1)"
+}
 PlasticCrate {
   translation -2.31 0 -2.38
   size 0.3 0.3 0.3

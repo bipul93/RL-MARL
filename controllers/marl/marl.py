@@ -57,16 +57,36 @@ print(robot.getTime())
 
 # print(robot.getControllerArguments())
 
+m = (robot_node.getField("translation")).getSFVec3f()
+x = round(-m[0] + 2.5 - 0.5)
+y = round(m[2] + 2.5 - 0.5)
+print("->",  m, x, y)
+
 wheels = []
 SPEED = 14.0
 
 # Get these values from world, (when figured out how to)
 floor_size = 5  # 5 x 5 meters
 basket_pos = [-2.25, -2.25]
-bot_init_pos = [2.0, 2.0]
-kuka_box_pos = [2.25, -2.25]
+bot_init_pos = [x, y]
+kuka_boxes = 2
+kuka_box_pos = [[2.25, -2.25], [-2.25, 2.25]]
+
+boxes = [
+    {
+        "pos": [2.25, -2.25],
+        "grid_pos": [0, 0]
+    },
+    {
+        "pos": [2.25, -2.25],
+        "grid_pos": [4, 4]
+    }
+
+]
 
 cell_size = 1
+
+
 
 
 def base_set_wheel_speeds_helper(speeds):
@@ -150,11 +170,12 @@ class Environment(gym.Env):
         self.observation_space = gym.spaces.Box(0, size, (size,))
         self.action_space = gym.spaces.Discrete(4)
         self.bot_state_space = gym.spaces.Discrete(2)
-        self.max_timesteps = size * 2 + 20
+        self.max_timesteps = size * size * 100
         self.normalize = normalize
         self.size = size
         self.bot_state = 0  # 0 or 1 or 2 - PICK or DROP or DONE
         base_init()
+        self.boxes = boxes.copy()
 
     def step(self, action):
         action_taken = action
@@ -187,6 +208,7 @@ class Environment(gym.Env):
                 self.bot_state = 1
                 self.prev_distance = self._get_distance(self.agent_pos, self.goal_pos)
                 self.timestep = 0
+                # print("Agent picked box 0")
             else:
                 reward = -1
 
@@ -197,8 +219,20 @@ class Environment(gym.Env):
             elif current_distance > self.prev_distance:
                 reward = -1
             elif current_distance == 0:
-                reward = 10
-                self.bot_state = 2
+                # drop and check for next box
+                self.boxes.pop(0)
+                if len(self.boxes) > 0:
+                    # print("Agent dropped box 0")
+                    reward = 1
+                    self.bot_state = 0
+                    self.block_pos = self.get_next_box_pos()
+                    self.prev_distance = self._get_distance(self.agent_pos, self.block_pos)
+                    self.timestep = 0
+                    # print("Agent need to pick box 1", self.block_pos, self.bot_state)
+                else:
+                    reward = 10
+                    self.bot_state = 2
+                    # print("Agent dropped box 1")
             else:
                 reward = -1
 
@@ -206,6 +240,7 @@ class Environment(gym.Env):
 
         self.timestep += 1
         if self.timestep >= self.max_timesteps or self.bot_state == 2:
+        # if self.bot_state == 2:
             done = True
         else:
             done = False
@@ -214,7 +249,7 @@ class Environment(gym.Env):
 
         # print(reward)
 
-        obs = np.array([self.agent_pos[0], self.agent_pos[1], self.bot_state]) / 1
+        obs = np.array([self.agent_pos[0], self.agent_pos[1], self.bot_state, len(self.boxes)]) / 1
 
         return obs, reward, done, info
 
@@ -222,18 +257,27 @@ class Environment(gym.Env):
     def _get_distance(self, x, y):
         return abs(x[0] - y[0]) + abs(x[1] - y[1])
 
+    def get_next_box_pos(self):
+        if len(self.boxes) > 0:
+            return self.boxes[0].get("grid_pos")
+        else:
+            return []
+
     def reset(self):
         self.timestep = 0
-        self.agent_pos = [0, 4]
+        self.agent_pos = [bot_init_pos[0], bot_init_pos[1]]
         self.goal_pos = [4, 0]
-        self.block_pos = [0, 0]
+        self.boxes = boxes.copy()
+        self.block_pos = self.get_next_box_pos()
+        # print("Reset", self.boxes, self.block_pos)
         self.bot_state = 0
         self.prev_distance = self._get_distance(self.agent_pos, self.goal_pos)
         # reset bot position
-        base_reset()
+        # base_reset()
         # print(self.agent_pos[0], self.agent_pos[1], self.bot_state)
         # print(np.array(self.agent_pos) / 1)
-        return np.array([self.agent_pos[0], self.agent_pos[1], self.bot_state]) / 1
+        return np.array([self.agent_pos[0], self.agent_pos[1], self.bot_state, len(self.boxes)]) / 1
+
 
     def render(self, action):
         x = -self.agent_pos[0] + 2.5 - 0.5
@@ -261,10 +305,10 @@ class Environment(gym.Env):
             # base_reset()
         # else:
         # while True:
-        base_turn_left()
-        # base_set_pos(x, y)
-        # passive_wait(5.0)
-        # time.sleep(5)
+        # base_turn_left()
+        base_set_pos(x, y)
+        passive_wait(5.0)
+        time.sleep(2)
         return
 
 
@@ -280,7 +324,7 @@ print(obs)
 class Actor(nn.Module):
     def __init__(self):
         super(Actor, self).__init__()
-        self.linear1 = nn.Linear(3, 128)
+        self.linear1 = nn.Linear(4, 128)
         # self.dropout = nn.Dropout(p=0.6)
         self.head = nn.Linear(128, env.action_space.n)
 
@@ -294,7 +338,7 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     def __init__(self):
         super(Critic, self).__init__()
-        self.linear1 = nn.Linear(3, 128)
+        self.linear1 = nn.Linear(4, 128)
         self.head = nn.Linear(128, 1)
 
     def forward(self, x):
@@ -306,7 +350,7 @@ class Critic(nn.Module):
 class ACTOR_CRITIC_AGENT():
     def __init__(self):
         # self.actor = Actor()
-        self.actor = torch.load("model.pth")
+        self.actor = torch.load("model2.pth")
         self.actor.eval()
         self.critic = Critic()
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=1e-2)
@@ -372,7 +416,8 @@ class ACTOR_CRITIC_AGENT():
         total_rewards = []
         mean_rewards = []
         # run till it solves
-        for i_episode in range(200):  # range(num_episodes):
+        DONE_COUNT = 0
+        for i_episode in count():  # range(num_episodes):
             state = env.reset()
             # print(state)
             # state = np.reshape(state, [1, 5])
@@ -394,8 +439,10 @@ class ACTOR_CRITIC_AGENT():
 
                 if 1 in info:
                     info_state = "DROP"
-                if 2 in info:
+                elif 2 in info:
                     info_state = "DONE"
+                else:
+                    info_state = info
                 if done:
                     self.optimize_model()
                     break
@@ -410,25 +457,31 @@ class ACTOR_CRITIC_AGENT():
             # mean_rewards.append(avg_rewards)
             # if i_episode % 10 == 0:
             print('Episode {}\tEpisode reward: {:.2f}\tMean-100 episodes: {:.2f}\tinfo_state: {}'.format(i_episode, r, avg_rewards,  info_state))
+            if info_state == "DONE":
+                DONE_COUNT += 1
+            else:
+                DONE_COUNT = 0
+
+            if DONE_COUNT == 20:
+                break
 
         return total_rewards
 
     def save_model(self):
-        torch.save(self.actor, "model.pth")
+        torch.save(self.actor, "model2.pth")
         return
 
     def evaluate(self):
         obs = env.reset()
         done = False
         env.render(-1)
+        print("--> ", obs)
         while not done:
             action, log_prob, state_val = self.select_action(obs)
             obs, reward, done, info = env.step(action.item())
-            print(action.item())
-
+            print(action.item(), info, done)
             env.render(action.item())
-            passive_wait(5.0)
-            time.sleep(5)
+
 
 
 agent = ACTOR_CRITIC_AGENT()
@@ -460,34 +513,35 @@ done = False
 while complete:
     step()
     # base_turn_left()
-    # print("evaluating ... ")
-    # agent.evaluate()
-    
-    if moveToNextState and not done:
-        moveToNextState = False
-        action, log_prob, state_val = agent.select_action(obs)
-        obs, reward, done, info = env.step(action.item())
-    # env.render(action.item())
-    x = -obs[0] + 2.5 - 0.5
-    y = obs[1] - 2.5 + 0.5
-    bot_pos = get_base_position()
-    dist = math.sqrt(((x - bot_pos[0]) ** 2) + ((y - bot_pos[2]) ** 2))
-    print("Agent pos: ", x, y, action, bot_pos, dist, done)
-    if action == 2:
-        angle_val = -2.09
-    if action == 1:
-        angle_val = 3.14
-
-    if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
-        base_turn_left()
-    else:
-        # base_reset()
-        base_forwards()
-    if dist <= 0.1:
-        base_reset()
-        moveToNextState = True
-    if done:
-        complete = False
+    print("evaluating ... ")
+    agent.evaluate()
+    complete = False
+    #
+    # if moveToNextState and not done:
+    #     moveToNextState = False
+    #     action, log_prob, state_val = agent.select_action(obs)
+    #     obs, reward, done, info = env.step(action.item())
+    # # env.render(action.item())
+    # x = -obs[0] + 2.5 - 0.5
+    # y = obs[1] - 2.5 + 0.5
+    # bot_pos = get_base_position()
+    # dist = math.sqrt(((x - bot_pos[0]) ** 2) + ((y - bot_pos[2]) ** 2))
+    # print("Agent pos: ", x, y, action, bot_pos, dist, done)
+    # if action == 2:
+    #     angle_val = -2.09
+    # if action == 1:
+    #     angle_val = 3.14
+    #
+    # if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
+    #     base_turn_left()
+    # else:
+    #     # base_reset()
+    #     base_forwards()
+    # if dist <= 0.1:
+    #     base_reset()
+    #     moveToNextState = True
+    # if done:
+    #     complete = False
 
     # complete = False
     # x = -0 + 2.5 - 0.5

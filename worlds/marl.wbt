@@ -14,10 +14,10 @@ RectangleArena {
   floorSize 5 5
   floorTileSize 2 2
 }
-KukaBox {
+DEF box1 KukaBox {
   translation 2.25 0.01 -2.25
 }
-KukaBox {
+DEF box2 KukaBox {
   translation -2.25 0 2.25
   name "Kuka box(1)"
 }

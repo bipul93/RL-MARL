@@ -34,6 +34,10 @@ print(robot)
 # print(robot.getField("translation").getSFVec3f())
 # print(robot.getField("rotation"))
 robot_node = robot.getSelf()
+
+box1 = robot.getFromDef("box1")
+box2 = robot.getFromDef("box2")
+print(box1.getPosition())
 print(robot_node.getPosition())
 print(robot_node.getOrientation())
 print((robot_node.getField("rotation")).getSFRotation())
@@ -76,11 +80,13 @@ kuka_box_pos = [[2.25, -2.25], [-2.25, 2.25]]
 boxes = [
     {
         "pos": [2.25, -2.25],
-        "grid_pos": [0, 0]
+        "grid_pos": [0, 0],
+        "node": box1
     },
     {
         "pos": [2.25, -2.25],
-        "grid_pos": [4, 4]
+        "grid_pos": [4, 4],
+        "node": box2
     }
 
 ]
@@ -106,15 +112,17 @@ def base_get_pos():
     return robot_node.getPosition()
 
 
-def base_set_pos(x, z):
+def base_set_pos(x, z, reset):
     trans_field.setSFVec3f([x, 0.12, z])
-    robot_node.resetPhysics()
+    if reset:
+        robot_node.resetPhysics()
 
 
 def base_reset():
     global wheels
     speeds = [0.0, 0.0, 0.0, 0.0]
     base_set_wheel_speeds_helper(speeds)
+    # robot_node.resetPhysics()
     # trans_field.setSFVec3f([bot_init_pos[0], 0.12, bot_init_pos[1]])
     # robot_node.resetPhysics()
     # robot_node.simulationReset()
@@ -304,7 +312,7 @@ class Environment(gym.Env):
         # else:
         # while True:
         # base_turn_left()
-        base_set_pos(x, y)
+        base_set_pos(x, y, True)
         passive_wait(5.0)
         time.sleep(2)
         return
@@ -531,6 +539,17 @@ while complete:
     y = obs[1] - 2.5 + 0.5
     bot_pos = get_base_position()
     dist = math.sqrt(((x - bot_pos[0]) ** 2) + ((y - bot_pos[2]) ** 2))
+    # print(x, y, obs, bot_pos, dist)
+
+    within_cell_bounds = False
+    # print("within", obs, [x, y], abs(bot_pos[0] - x),  abs(bot_pos[2] - y))
+    if abs(bot_pos[0] - x) <= 0.3 and abs(bot_pos[2] - y) < 0.3:
+        within_cell_bounds = True
+        # print("TRUE")
+        # base_reset()
+        # break
+
+
     if action == 2:  # left
         angle_val = -2.09
     if action == 1:  # down
@@ -540,30 +559,35 @@ while complete:
     if action == 0:  # up
         angle_val = -1.57
 
-    print("Agent pos: ", obs, x, y, action, bot_pos, dist, done, angle_val, abs(angle_val - get_base_rotation()[3]), get_base_rotation()[3])
     # ToDo: Optimize the below conditions
     if (abs(-1.57 - get_base_rotation()[3])) <= 0.01: # Heading up
+        heading = "UP"
         if action == 2:  # left
-            base_turn_left()
+            if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
+                base_turn_left()
         if action == 1:  # down
             base_backwards()
         if action == 3:  # right
-            base_turn_right()
+            if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
+                base_turn_right()
         if action == 0:  # up
             base_forwards()
 
     elif (abs(-3.14 - get_base_rotation()[3])) <= 0.01: # Heading Down
+        heading = "DOWN"
         if action == 2:  # left
-            base_turn_right()
+            if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
+                base_turn_right()
         if action == 1:  # down
             base_forwards()
         if action == 3:  # right
-            base_turn_left()
+            if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
+                base_turn_left()
         if action == 0:  # up
             base_backwards()
 
     elif (abs(-2.09 - get_base_rotation()[3])) <= 0.01 and get_base_rotation()[1] < 0 and get_base_rotation()[2] < 0: # Heading Left
-        # print("Heading left")
+        heading = "LEFT"
         if action == 2:  # left
             base_forwards()
         if action == 1:  # down
@@ -576,10 +600,11 @@ while complete:
                 base_turn_right()
 
     elif (abs(-2.09 - get_base_rotation()[3])) <= 0.01 and get_base_rotation()[1] > 0 and get_base_rotation()[2] > 0: # Heading Right
+        heading = "RIGHT"
         if action == 2:  # left
-            # base_backwards()
+            base_backwards()
             # or
-            base_turn_left()
+            # base_turn_left()
         if action == 1:  # down
             if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
                 base_turn_right()
@@ -598,9 +623,38 @@ while complete:
     # else:
     #     base_reset()
     #     base_forwards()
+
+    print("Agent pos: ", obs, x, y, action, bot_pos, dist, done, angle_val, abs(angle_val - get_base_rotation()[3]), get_base_rotation()[3], within_cell_bounds, heading)
+
+    # incorporating physics
     if dist <= 0.15:
         base_reset()
+        # if obs[2] == 1:
+        #     print("PICKING....")
+        #     for i in boxes:
+        #         if abs(bot_pos[0] - i["pos"][0]) <= 0.5 and abs(bot_pos[2] - i["pos"][1]) < 0.5:
+        #             box_node = i["node"]
+        #             if heading == "UP":
+        #                 pos = [bot_pos[0] - 0.15, 0.19, bot_pos[2]]
+        #             elif heading == "LEFT":
+        #                 pos = [bot_pos[0], 0.19, bot_pos[2]+0.20]
+        #             elif heading == "DOWN":
+        #                 pos = [bot_pos[0], 0.19, bot_pos[2]+0.20]
+        #             elif heading == "RIGHT":
+        #                 pos = [bot_pos[0], 0.19, bot_pos[2]-0.20]
+        #             print(box_node.getField("translation").getSFVec3f(), bot_pos, heading, pos)
+        #             box_node.getField("translation").setSFVec3f(pos)
+        #             # complete = False
+        #             break
+        # time.sleep(1)
         moveToNextState = True
         # passive_wait(0.2)
+    # elif within_cell_bounds:
+    #     # setting position explicitly
+    #     base_reset()
+    #     base_set_pos(x, y, True)
+    #     moveToNextState = True
+    #     print("WITHIN cell")
+
     if done:
         complete = False

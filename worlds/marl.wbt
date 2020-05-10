@@ -22,8 +22,8 @@ KukaBox {
   name "Kuka box(1)"
 }
 PlasticCrate {
-  translation -2.31 0 -2.38
-  size 0.3 0.3 0.3
+  translation -2.37 0 -2.4
+  size 0.25 0.25 0.25
   color 0.12549 0.290196 0.529412
 }
 Youbot {

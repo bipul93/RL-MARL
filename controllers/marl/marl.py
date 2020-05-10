@@ -35,6 +35,7 @@ print(robot)
 # print(robot.getField("rotation"))
 robot_node = robot.getSelf()
 print(robot_node.getPosition())
+print(robot_node.getOrientation())
 print((robot_node.getField("rotation")).getSFRotation())
 r = R.from_rotvec(np.reshape(robot_node.getOrientation(), (3, 3)))
 print(r)
@@ -60,7 +61,7 @@ print(robot.getTime())
 m = (robot_node.getField("translation")).getSFVec3f()
 x = round(-m[0] + 2.5 - 0.5)
 y = round(m[2] + 2.5 - 0.5)
-print("->",  m, x, y)
+print("->", m, x, y)
 
 wheels = []
 SPEED = 14.0
@@ -85,8 +86,6 @@ boxes = [
 ]
 
 cell_size = 1
-
-
 
 
 def base_set_wheel_speeds_helper(speeds):
@@ -240,7 +239,7 @@ class Environment(gym.Env):
 
         self.timestep += 1
         if self.timestep >= self.max_timesteps or self.bot_state == 2:
-        # if self.bot_state == 2:
+            # if self.bot_state == 2:
             done = True
         else:
             done = False
@@ -277,7 +276,6 @@ class Environment(gym.Env):
         # print(self.agent_pos[0], self.agent_pos[1], self.bot_state)
         # print(np.array(self.agent_pos) / 1)
         return np.array([self.agent_pos[0], self.agent_pos[1], self.bot_state, len(self.boxes)]) / 1
-
 
     def render(self, action):
         x = -self.agent_pos[0] + 2.5 - 0.5
@@ -359,6 +357,7 @@ class ACTOR_CRITIC_AGENT():
         self.rewards = []
         self.log_probs = []
         self.state_values = []
+
     # https://pytorch.org/docs/stable/distributions.html
 
     def select_action(self, state):
@@ -456,7 +455,9 @@ class ACTOR_CRITIC_AGENT():
             avg_rewards = np.mean(total_rewards[-100:])
             # mean_rewards.append(avg_rewards)
             # if i_episode % 10 == 0:
-            print('Episode {}\tEpisode reward: {:.2f}\tMean-100 episodes: {:.2f}\tinfo_state: {}'.format(i_episode, r, avg_rewards,  info_state))
+            print('Episode {}\tEpisode reward: {:.2f}\tMean-100 episodes: {:.2f}\tinfo_state: {}'.format(i_episode, r,
+                                                                                                         avg_rewards,
+                                                                                                         info_state))
             if info_state == "DONE":
                 DONE_COUNT += 1
             else:
@@ -483,11 +484,12 @@ class ACTOR_CRITIC_AGENT():
             env.render(action.item())
 
 
-
 agent = ACTOR_CRITIC_AGENT()
+
+# Remove model load from actor network if training
+# Change model name before saving
 # total_rewards = agent.train()
 # agent.save_model()
-
 
 
 def passive_wait(sec):
@@ -510,51 +512,95 @@ moveToNextState = True
 obs = env.reset()
 done = False
 # obs, reward, done, info
+print("evaluating ... ")
 while complete:
     step()
-    # base_turn_left()
-    print("evaluating ... ")
-    agent.evaluate()
-    complete = False
+
+    # Dont remove following lines, Its for jump testing
+    # print("evaluating ... ")
+    # agent.evaluate()
+    # complete = False
     #
-    # if moveToNextState and not done:
-    #     moveToNextState = False
-    #     action, log_prob, state_val = agent.select_action(obs)
-    #     obs, reward, done, info = env.step(action.item())
-    # # env.render(action.item())
-    # x = -obs[0] + 2.5 - 0.5
-    # y = obs[1] - 2.5 + 0.5
-    # bot_pos = get_base_position()
-    # dist = math.sqrt(((x - bot_pos[0]) ** 2) + ((y - bot_pos[2]) ** 2))
-    # print("Agent pos: ", x, y, action, bot_pos, dist, done)
-    # if action == 2:
-    #     angle_val = -2.09
-    # if action == 1:
-    #     angle_val = 3.14
-    #
+    if moveToNextState and not done:
+        moveToNextState = False
+        action, log_prob, state_val = agent.select_action(obs)
+        obs, reward, done, info = env.step(action.item())
+    # env.render(action.item())
+    # print(obs, "-->", get_base_rotation())
+    x = -obs[0] + 2.5 - 0.5
+    y = obs[1] - 2.5 + 0.5
+    bot_pos = get_base_position()
+    dist = math.sqrt(((x - bot_pos[0]) ** 2) + ((y - bot_pos[2]) ** 2))
+    if action == 2:  # left
+        angle_val = -2.09
+    if action == 1:  # down
+        angle_val = -3.14
+    if action == 3:  # right
+        angle_val = -2.09
+    if action == 0:  # up
+        angle_val = -1.57
+
+    print("Agent pos: ", obs, x, y, action, bot_pos, dist, done, angle_val, abs(angle_val - get_base_rotation()[3]), get_base_rotation()[3])
+    # ToDo: Optimize the below conditions
+    if (abs(-1.57 - get_base_rotation()[3])) <= 0.01: # Heading up
+        if action == 2:  # left
+            base_turn_left()
+        if action == 1:  # down
+            base_backwards()
+        if action == 3:  # right
+            base_turn_right()
+        if action == 0:  # up
+            base_forwards()
+
+    elif (abs(-3.14 - get_base_rotation()[3])) <= 0.01: # Heading Down
+        if action == 2:  # left
+            base_turn_right()
+        if action == 1:  # down
+            base_forwards()
+        if action == 3:  # right
+            base_turn_left()
+        if action == 0:  # up
+            base_backwards()
+
+    elif (abs(-2.09 - get_base_rotation()[3])) <= 0.01 and get_base_rotation()[1] < 0 and get_base_rotation()[2] < 0: # Heading Left
+        # print("Heading left")
+        if action == 2:  # left
+            base_forwards()
+        if action == 1:  # down
+            if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
+                base_turn_left()
+        if action == 3:  # right
+            base_backwards()
+        if action == 0:  # up
+            if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
+                base_turn_right()
+
+    elif (abs(-2.09 - get_base_rotation()[3])) <= 0.01 and get_base_rotation()[1] > 0 and get_base_rotation()[2] > 0: # Heading Right
+        if action == 2:  # left
+            # base_backwards()
+            # or
+            base_turn_left()
+        if action == 1:  # down
+            if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
+                base_turn_right()
+        if action == 3:  # right
+            base_forwards()
+        if action == 0:  # up
+            if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
+                base_turn_left()
+    # else:
+    #     # print("ERROR: ", "Unknown heading direction")
+    #     if (abs(angle_val - get_base_rotation()[3])) <= 0.01:
+    #         print("same angle base reset")
+    #         base_reset()
     # if (abs(angle_val - get_base_rotation()[3])) >= 0.01:
     #     base_turn_left()
     # else:
-    #     # base_reset()
-    #     base_forwards()
-    # if dist <= 0.1:
     #     base_reset()
-    #     moveToNextState = True
-    # if done:
-    #     complete = False
-
-    # complete = False
-    # x = -0 + 2.5 - 0.5
-    # y = 3 - 2.5 + 0.5
-    # p2 = get_base_position()
-    # distance = math.sqrt( ((x-p2[0])**2)+((y-p2[2])**2) )
-    # print(abs(-2.09 - get_base_rotation()[3]), distance)
-    # if (abs(-2.09 - get_base_rotation()[3])) >= 0.01:
-    #     base_turn_left()
-    # else:
-    #     # base_reset()
     #     base_forwards()
-    # if distance <= 0.1:
-    #     base_reset()
-    #     complete = False
-
+    if dist <= 0.15:
+        base_reset()
+        moveToNextState = True
+        # passive_wait(0.2)
+    if done:
+        complete = False
